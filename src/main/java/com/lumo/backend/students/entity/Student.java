@@ -19,9 +19,7 @@ import lombok.Setter;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "students", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"student_class", "roll_number"})
-})
+@Table(name = "students")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -50,12 +48,13 @@ public class Student {
     private String lastName;
     private String middleName;
     private String mobileNumber;
-    private String parentName;
+    private String fatherName;
+    private String motherName;
+    private String fatherAadharNumber;
+    private String motherAadharNumber;
+    private String studentAadharNumber;
     private String dateOfBirth;
     private String gender;
-
-    @Column(name = "roll_number")
-    private String rollNumber;
 
     @Column(name = "student_class")
     private String studentClass;  // kept for backwards compatibility matching teacher.classTeacher

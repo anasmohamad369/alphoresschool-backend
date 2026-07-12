@@ -6,10 +6,13 @@ public record StudentProfileResponse(
         String lastName,
         String middleName,
         String mobileNumber,
-        String parentName,
+        String fatherName,
+        String motherName,
+        String fatherAadharNumber,
+        String motherAadharNumber,
+        String studentAadharNumber,
         String dateOfBirth,
         String gender,
-        String rollNumber,
         String studentClass,
         String profilePhotoUrl
 ) {}

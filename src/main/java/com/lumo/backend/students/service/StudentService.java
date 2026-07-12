@@ -75,15 +75,21 @@ public class StudentService {
                     "Student with mobile number " + mobile + " already exists.");
         }
 
+        if (request.studentId() == null || request.studentId().isBlank()) {
+            throw new IllegalArgumentException("studentId is required.");
+        }
+        if (studentRepository.findByStudentId(request.studentId()).isPresent()) {
+            throw new IllegalArgumentException(
+                    "Student with admission number " + request.studentId() + " already exists.");
+        }
+
         Student student = new Student();
         mapFields(student, request.firstName(), request.lastName(), request.middleName(),
-                mobile, request.parentName(), request.dateOfBirth(),
-                request.gender(), request.rollNumber(), request.studentClass(), request.profilePhotoUrl());
+                mobile, request.fatherName(), request.motherName(),
+                request.fatherAadharNumber(), request.motherAadharNumber(), request.studentAadharNumber(), request.dateOfBirth(),
+                request.gender(), request.studentClass(), request.profilePhotoUrl());
 
-        // Generate unique Student ID: ALP26 + 4-digit sequence
-        long nextNum = studentRepository.count() + 1;
-        String studentId = String.format("ALP26%04d", nextNum);
-        student.setStudentId(studentId);
+        student.setStudentId(request.studentId());
 
         // Default password "123456"
         student.setPassword(passwordEncoder.encode("123456"));
@@ -254,8 +260,9 @@ public class StudentService {
                         "Student not found with id: " + studentId));
 
         mapFields(student, request.firstName(), request.lastName(), request.middleName(),
-                request.mobileNumber(), request.parentName(), request.dateOfBirth(),
-                request.gender(), request.rollNumber(), request.studentClass(), request.profilePhotoUrl());
+                request.mobileNumber(), request.fatherName(), request.motherName(),
+                request.fatherAadharNumber(), request.motherAadharNumber(), request.studentAadharNumber(), request.dateOfBirth(),
+                request.gender(), request.studentClass(), request.profilePhotoUrl());
 
         Student updated = studentRepository.save(student);
         return buildResponse(updated);
@@ -269,19 +276,23 @@ public class StudentService {
     }
 
     private void mapFields(Student student, String firstName, String lastName,
-            String middleName, String mobileNumber, String parentName,
-            String dateOfBirth, String gender, String rollNumber, String studentClass, String profilePhotoUrl) {
+            String middleName, String mobileNumber, String fatherName, String motherName,
+            String fatherAadharNumber, String motherAadharNumber, String studentAadharNumber,
+            String dateOfBirth, String gender, String studentClass, String profilePhotoUrl) {
         student.setFirstName(firstName);
         student.setLastName(lastName);
         student.setMiddleName(middleName);
         student.setMobileNumber(mobileNumber);
-        student.setParentName(parentName);
+        student.setFatherName(fatherName);
+        student.setMotherName(motherName);
+        student.setFatherAadharNumber(fatherAadharNumber);
+        student.setMotherAadharNumber(motherAadharNumber);
+        student.setStudentAadharNumber(studentAadharNumber);
         student.setDateOfBirth(dateOfBirth);
         student.setGender(gender);
-        student.setRollNumber(rollNumber);
         student.setStudentClass(studentClass);
         student.setProfilePhotoUrl(profilePhotoUrl);
-        }
+    }
 
     private StudentResponse buildResponse(Student student) {
         Optional<Teacher> teacherOpt = Optional.empty();
@@ -317,8 +328,11 @@ public class StudentService {
 
         return new StudentResponse(
                 student.getId(), student.getFirstName(), student.getLastName(),
-                student.getMiddleName(), student.getMobileNumber(), student.getParentName(),
-                student.getDateOfBirth(), student.getGender(), student.getRollNumber(), student.getStudentClass(),
+                student.getMiddleName(), student.getMobileNumber(),
+                student.getFatherName(), student.getMotherName(),
+                student.getFatherAadharNumber(), student.getMotherAadharNumber(),
+                student.getStudentAadharNumber(),
+                student.getDateOfBirth(), student.getGender(), student.getStudentClass(),
                 classId, teacherId, teacherName, teacherEmail, teacherMobile, attendance,
                 student.getStudentId(), student.getProfilePhotoUrl() != null ? student.getProfilePhotoUrl() : ""
             );

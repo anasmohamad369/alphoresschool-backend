@@ -220,7 +220,6 @@ public class AttendanceService {
         return new com.lumo.backend.attendance.dto.StudentAttendanceSummaryResponse(
             name,
             className,
-            student.getRollNumber(),
             percentage,
             present,
             absent,

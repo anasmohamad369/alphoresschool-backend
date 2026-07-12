@@ -317,10 +317,13 @@ public class TeacherService {
                 s.getLastName(),
                 s.getMiddleName(),
                 s.getMobileNumber(),
-                s.getParentName(),
+                s.getFatherName(),
+                s.getMotherName(),
+                s.getFatherAadharNumber(),
+                s.getMotherAadharNumber(),
+                s.getStudentAadharNumber(),
                 s.getDateOfBirth(),
                 s.getGender(),
-                s.getRollNumber(),
                 s.getStudentClass(),
                 s.getProfilePhotoUrl()
             );

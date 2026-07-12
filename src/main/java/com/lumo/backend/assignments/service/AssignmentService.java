@@ -217,7 +217,15 @@ public class AssignmentService {
             
             homeworkSubmissionRepository.save(submission);
             
-            StudentResponse resp = new StudentResponse(student.getId(), student.getFirstName(), student.getLastName(), student.getMiddleName(), student.getMobileNumber(), student.getParentName(), student.getDateOfBirth(), student.getGender(), student.getRollNumber(), student.getStudentClass(), null, null, null, null, null, null, student.getStudentId(), student.getProfilePhotoUrl());
+            StudentResponse resp = new StudentResponse(
+                student.getId(), student.getFirstName(), student.getLastName(),
+                student.getMiddleName(), student.getMobileNumber(),
+                student.getFatherName(), student.getMotherName(),
+                student.getFatherAadharNumber(), student.getMotherAadharNumber(),
+                student.getStudentAadharNumber(),
+                student.getDateOfBirth(), student.getGender(), student.getStudentClass(),
+                null, null, null, null, null, null, student.getStudentId(), student.getProfilePhotoUrl()
+            );
             if (isTarget) {
                 targetStatusStudents.add(resp);
             } else {

@@ -6,7 +6,6 @@ import java.util.List;
 public record StudentAttendanceSummaryResponse(
     String studentName,
     String studentClass,
-    String rollNumber,
     double attendancePercentage,
     long totalPresent,
     long totalAbsent,
