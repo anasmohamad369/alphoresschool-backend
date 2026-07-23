@@ -5,7 +5,9 @@ import com.lumo.backend.announcements.entity.Announcement;
 import com.lumo.backend.announcements.repository.AnnouncementRepository;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AnnouncementService {
@@ -31,5 +33,24 @@ public class AnnouncementService {
 
     public List<Announcement> getAnnouncementsByType(String type) {
         return announcementRepository.findByType(type);
+    }
+
+    public Announcement getAnnouncementById(Long id) {
+        return announcementRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Announcement not found with id: " + id));
+    }
+
+    public Announcement updateAnnouncement(Long id, AnnouncementRequest request) {
+        Announcement announcement = getAnnouncementById(id);
+        announcement.setTitle(request.title());
+        announcement.setDescription(request.description());
+        announcement.setType(request.type());
+        announcement.setStartDate(request.startDate() != null ? request.startDate() : LocalDate.now());
+        return announcementRepository.save(announcement);
+    }
+
+    public void deleteAnnouncement(Long id) {
+        Announcement announcement = getAnnouncementById(id);
+        announcementRepository.delete(announcement);
     }
 }
