@@ -38,6 +38,8 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:-changeme-dev-only-replace-in-production}
       APP_JWT_TEACHER_SECRET: ${APP_JWT_TEACHER_SECRET:-changeme-teacher-dev-only}
       APP_JWT_STUDENT_SECRET: ${APP_JWT_STUDENT_SECRET:-changeme-student-dev-only}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_API_MODEL: ${OPENROUTER_API_MODEL:-openrouter/free}
     env_file:
       - path: .env
         required: false
