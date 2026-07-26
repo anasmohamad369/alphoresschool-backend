@@ -42,6 +42,24 @@ public class QuizController {
         return ResponseEntity.ok(quizService.getQuizById(quizId, authHeader));
     }
 
+    @PutMapping("/{quizId}")
+    public ResponseEntity<Quiz> updateQuiz(
+            @PathVariable Long quizId,
+            @RequestBody QuizCreateRequest request,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(quizService.updateQuiz(quizId, request, authHeader));
+    }
+
+    @DeleteMapping("/{quizId}")
+    public ResponseEntity<Void> deleteQuiz(
+            @PathVariable Long quizId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        quizService.deleteQuiz(quizId, authHeader);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/generate-questions")
     public ResponseEntity<List<QuestionDTO>> generateQuestions(
             @RequestBody QuestionGenerateRequest request,
@@ -85,9 +103,19 @@ public class QuizController {
         return ResponseEntity.ok(quizService.completeQuiz(quizId, authHeader));
     }
 
+    @PutMapping("/{quizId}/request-activation")
+    public ResponseEntity<Quiz> requestActivation(
+            @PathVariable Long quizId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(quizService.requestActivation(quizId, authHeader));
+    }
+
     @GetMapping("/active")
-    public ResponseEntity<List<Quiz>> getActiveQuizzes() {
-        return ResponseEntity.ok(quizService.getActiveQuizzes());
+    public ResponseEntity<List<Quiz>> getActiveQuizzes(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(quizService.getActiveQuizzes(authHeader));
     }
 
     @PostMapping("/{quizId}/register")

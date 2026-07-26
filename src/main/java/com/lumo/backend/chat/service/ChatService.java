@@ -6,6 +6,7 @@ import com.lumo.backend.chat.dto.ConversationResponse;
 import com.lumo.backend.chat.repository.ChatMessageRepository;
 import com.lumo.backend.students.repository.StudentRepository;
 import com.lumo.backend.teachers.repository.TeacherRepository;
+import com.lumo.backend.admin.repository.PrincipalRepository;
 import com.lumo.backend.security.JwtService;
 
 import java.time.Instant;
@@ -22,16 +23,19 @@ public class ChatService {
     private final ChatMessageRepository chatRepository;
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
+    private final PrincipalRepository principalRepository;
     private final JwtService jwtService;
 
     public ChatService(
             ChatMessageRepository chatRepository,
             StudentRepository studentRepository,
             TeacherRepository teacherRepository,
+            PrincipalRepository principalRepository,
             JwtService jwtService) {
         this.chatRepository = chatRepository;
         this.studentRepository = studentRepository;
         this.teacherRepository = teacherRepository;
+        this.principalRepository = principalRepository;
         this.jwtService = jwtService;
     }
 
@@ -56,25 +60,28 @@ public class ChatService {
         } else if (jwtService.extractStudentSubject(token) != null) {
             senderId = jwtService.extractStudentSubject(token);
             senderRole = "STUDENT";
+        } else if (jwtService.extractAdminSubject(token) != null) {
+            senderId = jwtService.extractAdminSubject(token);
+            senderRole = "ADMIN";
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or unauthorized token");
         }
 
-        String receiverRole;
-        if (senderRole.equals("TEACHER")) {
-            // Teacher is sending to Student/Parent -> verify student exists
-            boolean studentExists = studentRepository.findByStudentId(request.receiverId()).isPresent();
-            if (!studentExists) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student/Parent not found: " + request.receiverId());
-            }
-            receiverRole = "STUDENT";
-        } else {
-            // Student/Parent is sending to Teacher -> verify teacher exists
-            boolean teacherExists = teacherRepository.findByEmailId(request.receiverId()).isPresent();
-            if (!teacherExists) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Teacher not found: " + request.receiverId());
-            }
+        String receiverRole = null;
+        if (principalRepository.findByEmailId(request.receiverId()).isPresent()) {
+            receiverRole = "ADMIN";
+        } else if (teacherRepository.findByEmailId(request.receiverId()).isPresent()) {
             receiverRole = "TEACHER";
+        } else if (studentRepository.findByStudentId(request.receiverId()).isPresent()) {
+            receiverRole = "STUDENT";
+        }
+
+        if (receiverRole == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Recipient not found: " + request.receiverId());
+        }
+
+        if (senderRole.equals("STUDENT") && receiverRole.equals("STUDENT")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Students cannot chat directly with other students.");
         }
 
         ChatMessage message = new ChatMessage();
@@ -97,8 +104,13 @@ public class ChatService {
         }
 
         String token = tokenHeader.substring(7).trim();
-        String userId = jwtService.extractTeacherSubject(token) != null ? 
-                jwtService.extractTeacherSubject(token) : jwtService.extractStudentSubject(token);
+        String userId = jwtService.extractTeacherSubject(token);
+        if (userId == null) {
+            userId = jwtService.extractStudentSubject(token);
+        }
+        if (userId == null) {
+            userId = jwtService.extractAdminSubject(token);
+        }
         
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or unauthorized token");
@@ -111,8 +123,13 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing token");
         }
         String token = tokenHeader.substring(7).trim();
-        String userId = jwtService.extractTeacherSubject(token) != null ? 
-                jwtService.extractTeacherSubject(token) : jwtService.extractStudentSubject(token);
+        String userId = jwtService.extractTeacherSubject(token);
+        if (userId == null) {
+            userId = jwtService.extractStudentSubject(token);
+        }
+        if (userId == null) {
+            userId = jwtService.extractAdminSubject(token);
+        }
         
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or unauthorized token");
@@ -125,10 +142,15 @@ public class ChatService {
             String partnerId = msg.getSenderId().equals(userId) ? msg.getReceiverId() : msg.getSenderId();
             String partnerName = "User";
 
-            if (partnerId.contains("@")) { // Teacher
+            if (partnerId.contains("@")) {
                 var teacher = teacherRepository.findByEmailId(partnerId);
                 if (teacher.isPresent()) {
                     partnerName = teacher.get().getName();
+                } else {
+                    var principal = principalRepository.findByEmailId(partnerId);
+                    if (principal.isPresent()) {
+                        partnerName = principal.get().getName() + " (Principal)";
+                    }
                 }
             } else { // Student
                 var student = studentRepository.findByStudentId(partnerId);

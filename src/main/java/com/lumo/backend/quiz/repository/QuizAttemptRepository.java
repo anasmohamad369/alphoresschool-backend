@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     List<QuizAttempt> findByQuizId(Long quizId);
     Optional<QuizAttempt> findByQuizIdAndStudentId(Long quizId, String studentId);
+    void deleteByQuizId(Long quizId);
 }

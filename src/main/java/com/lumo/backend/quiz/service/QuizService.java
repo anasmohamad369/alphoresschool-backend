@@ -6,6 +6,9 @@ import com.lumo.backend.quiz.repository.*;
 import com.lumo.backend.teachers.entity.Teacher;
 import com.lumo.backend.teachers.repository.TeacherRepository;
 import com.lumo.backend.security.JwtService;
+import com.lumo.backend.admin.repository.PrincipalRepository;
+import com.lumo.backend.students.repository.StudentRepository;
+import com.lumo.backend.students.entity.Student;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,19 +27,25 @@ public class QuizService {
     private final TeacherRepository teacherRepository;
     private final JwtService jwtService;
     private final GeminiService geminiService;
+    private final PrincipalRepository principalRepository;
+    private final StudentRepository studentRepository;
 
     public QuizService(
             QuizRepository quizRepository,
             QuizAttemptRepository quizAttemptRepository,
             TeacherRepository teacherRepository,
             JwtService jwtService,
-            GeminiService geminiService
+            GeminiService geminiService,
+            PrincipalRepository principalRepository,
+            StudentRepository studentRepository
     ) {
         this.quizRepository = quizRepository;
         this.quizAttemptRepository = quizAttemptRepository;
         this.teacherRepository = teacherRepository;
         this.jwtService = jwtService;
         this.geminiService = geminiService;
+        this.principalRepository = principalRepository;
+        this.studentRepository = studentRepository;
     }
 
     private String getHeaderToken(String authHeader) {
@@ -65,6 +74,16 @@ public class QuizService {
         return studentId;
     }
 
+    private void getAuthenticatedPrincipal(String authHeader) {
+        String token = getHeaderToken(authHeader);
+        String emailId = jwtService.extractAdminSubject(token);
+        if (emailId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid principal token.");
+        }
+        principalRepository.findByEmailId(emailId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Principal account not found."));
+    }
+
     public Quiz createQuiz(QuizCreateRequest request, String authHeader) {
         Teacher teacher = getAuthenticatedTeacher(authHeader);
 
@@ -72,37 +91,90 @@ public class QuizService {
         quiz.setTitle(request.title());
         quiz.setTopic(request.topic());
         quiz.setDescription(request.description());
+        quiz.setClassId(request.classId());
         quiz.setStatus("DRAFT");
         quiz.setTeacherId(teacher.getId());
 
         return quizRepository.save(quiz);
     }
 
+    public Quiz updateQuiz(Long quizId, QuizCreateRequest request, String authHeader) {
+        Teacher teacher = getAuthenticatedTeacher(authHeader);
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
+
+        if (!quiz.getTeacherId().equals(teacher.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can update this quiz.");
+        }
+
+        quiz.setTitle(request.title());
+        quiz.setTopic(request.topic());
+        quiz.setDescription(request.description());
+        quiz.setClassId(request.classId());
+
+        return quizRepository.save(quiz);
+    }
+
+    public void deleteQuiz(Long quizId, String authHeader) {
+        Teacher teacher = getAuthenticatedTeacher(authHeader);
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
+
+        if (!quiz.getTeacherId().equals(teacher.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can delete this quiz.");
+        }
+
+        quizAttemptRepository.deleteByQuizId(quizId);
+        quizRepository.delete(quiz);
+    }
+
     public Quiz getQuizById(Long quizId, String authHeader) {
         String token = getHeaderToken(authHeader);
         String studentId = jwtService.extractStudentSubject(token);
         String teacherEmail = jwtService.extractTeacherSubject(token);
-        if (studentId == null && teacherEmail == null) {
+        String adminEmail = jwtService.extractAdminSubject(token);
+        if (studentId == null && teacherEmail == null && adminEmail == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication token.");
         }
 
-        return quizRepository.findById(quizId)
+        Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found with id: " + quizId));
+
+        if (studentId != null) {
+            Student student = studentRepository.findByStudentId(studentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Student not found."));
+            if (quiz.getClassId() != null) {
+                if (student.getSchoolClass() == null || !quiz.getClassId().equals(student.getSchoolClass().getId())) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This quiz is not assigned to your class.");
+                }
+            }
+        }
+
+        return quiz;
     }
 
     public List<Quiz> getAllQuizzes(String authHeader) {
         String token = getHeaderToken(authHeader);
         String studentId = jwtService.extractStudentSubject(token);
         String teacherEmail = jwtService.extractTeacherSubject(token);
-        if (studentId == null && teacherEmail == null) {
+        String adminEmail = jwtService.extractAdminSubject(token);
+        if (studentId == null && teacherEmail == null && adminEmail == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication token.");
+        }
+
+        if (studentId != null) {
+            Student student = studentRepository.findByStudentId(studentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Student not found."));
+            if (student.getSchoolClass() == null) {
+                return new ArrayList<>();
+            }
+            return quizRepository.findByClassId(student.getSchoolClass().getId());
         }
 
         return quizRepository.findAll();
     }
 
     public List<QuestionDTO> generateAIQuestions(QuestionGenerateRequest request, String authHeader) {
-        // Verify teacher auth
         getAuthenticatedTeacher(authHeader);
         int count = request.count() != null ? request.count() : 5;
         return geminiService.generateQuestions(request.topic(), count);
@@ -117,7 +189,6 @@ public class QuizService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can modify this quiz.");
         }
 
-        // Replace questions
         quiz.getQuestions().clear();
         for (QuestionDTO dto : questionsDto) {
             Question question = new Question();
@@ -133,43 +204,72 @@ public class QuizService {
         return quizRepository.save(quiz);
     }
 
-    public Quiz startQuiz(Long quizId, String authHeader) {
+    public Quiz requestActivation(Long quizId, String authHeader) {
         Teacher teacher = getAuthenticatedTeacher(authHeader);
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
 
         if (!quiz.getTeacherId().equals(teacher.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can start this quiz.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can request activation for this quiz.");
         }
+
+        if (!"DRAFT".equals(quiz.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only quiz drafts can be requested for activation.");
+        }
+
+        quiz.setStatus("PENDING");
+        return quizRepository.save(quiz);
+    }
+
+    public Quiz startQuiz(Long quizId, String authHeader) {
+        getAuthenticatedPrincipal(authHeader);
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
 
         quiz.setStatus("STARTED");
         return quizRepository.save(quiz);
     }
 
     public Quiz completeQuiz(Long quizId, String authHeader) {
-        Teacher teacher = getAuthenticatedTeacher(authHeader);
+        getAuthenticatedPrincipal(authHeader);
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
-
-        if (!quiz.getTeacherId().equals(teacher.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can complete this quiz.");
-        }
 
         quiz.setStatus("COMPLETED");
         return quizRepository.save(quiz);
     }
 
-    public List<Quiz> getActiveQuizzes() {
+    public List<Quiz> getActiveQuizzes(String authHeader) {
+        String token = getHeaderToken(authHeader);
+        String studentId = jwtService.extractStudentSubject(token);
+        if (studentId != null) {
+            Student student = studentRepository.findByStudentId(studentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Student not found."));
+            if (student.getSchoolClass() == null) {
+                return new ArrayList<>();
+            }
+            return quizRepository.findByStatusAndClassId("STARTED", student.getSchoolClass().getId());
+        }
+
         return quizRepository.findByStatus("STARTED");
     }
 
     public QuizAttempt registerForQuiz(Long quizId, String authHeader) {
         String studentId = getAuthenticatedStudentId(authHeader);
+        Student student = studentRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Student not found."));
+
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
 
         if (!"STARTED".equals(quiz.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quiz is not currently active.");
+        }
+
+        if (quiz.getClassId() != null) {
+            if (student.getSchoolClass() == null || !quiz.getClassId().equals(student.getSchoolClass().getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This quiz is not assigned to your class.");
+            }
         }
 
         Optional<QuizAttempt> existing = quizAttemptRepository.findByQuizIdAndStudentId(quizId, studentId);
@@ -188,11 +288,20 @@ public class QuizService {
 
     public QuizAttempt submitQuiz(Long quizId, QuizSubmitRequest request, String authHeader) {
         String studentId = getAuthenticatedStudentId(authHeader);
+        Student student = studentRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Student not found."));
+
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
 
         if (!"STARTED".equals(quiz.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quiz has ended or is not active.");
+        }
+
+        if (quiz.getClassId() != null) {
+            if (student.getSchoolClass() == null || !quiz.getClassId().equals(student.getSchoolClass().getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This quiz is not assigned to your class.");
+            }
         }
 
         QuizAttempt attempt = quizAttemptRepository.findByQuizIdAndStudentId(quizId, studentId)
@@ -232,12 +341,23 @@ public class QuizService {
     }
 
     public List<QuizAttempt> getQuizResults(Long quizId, String authHeader) {
-        Teacher teacher = getAuthenticatedTeacher(authHeader);
+        String token = getHeaderToken(authHeader);
+        String teacherEmail = jwtService.extractTeacherSubject(token);
+        String adminEmail = jwtService.extractAdminSubject(token);
+
+        if (teacherEmail == null && adminEmail == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication token.");
+        }
+
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found."));
 
-        if (!quiz.getTeacherId().equals(teacher.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher can view results.");
+        if (teacherEmail != null) {
+            Teacher teacher = teacherRepository.findByEmailId(teacherEmail)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Teacher account not found."));
+            if (!quiz.getTeacherId().equals(teacher.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator teacher or Principal can view results.");
+            }
         }
 
         List<QuizAttempt> attempts = quizAttemptRepository.findByQuizId(quizId);

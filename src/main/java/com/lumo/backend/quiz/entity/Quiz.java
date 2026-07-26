@@ -23,6 +23,7 @@ public class Quiz {
     private String description;
     private String status; // DRAFT, STARTED, COMPLETED
     private Long teacherId;
+    private Long classId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "quiz_id")

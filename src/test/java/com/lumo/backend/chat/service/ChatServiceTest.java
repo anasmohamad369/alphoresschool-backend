@@ -11,6 +11,7 @@ import com.lumo.backend.students.entity.Student;
 import com.lumo.backend.students.repository.StudentRepository;
 import com.lumo.backend.teachers.entity.Teacher;
 import com.lumo.backend.teachers.repository.TeacherRepository;
+import com.lumo.backend.admin.repository.PrincipalRepository;
 import com.lumo.backend.security.JwtService;
 
 import java.time.Instant;
@@ -31,6 +32,8 @@ class ChatServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private TeacherRepository teacherRepository;
+    @Mock
+    private PrincipalRepository principalRepository;
     @Mock
     private JwtService jwtService;
 
