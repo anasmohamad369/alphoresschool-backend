@@ -5,6 +5,7 @@ import com.lumo.backend.students.dto.StudentAddResponse;
 import com.lumo.backend.students.dto.StudentResponse;
 import com.lumo.backend.students.dto.StudentUpdate;
 import com.lumo.backend.students.dto.StudentLoginRequest;
+import com.lumo.backend.students.dto.BirthdayStudentResponse;
 import com.lumo.backend.students.entity.Student;
 import com.lumo.backend.students.repository.StudentRepository;
 import com.lumo.backend.teachers.entity.Teacher;
@@ -16,6 +17,12 @@ import com.lumo.backend.classes.repository.SectionRepository;
 import com.lumo.backend.attendance.repository.AttendanceRepository;
 import com.lumo.backend.attendance.entity.Attendance;
 import com.lumo.backend.security.JwtService;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -336,5 +343,53 @@ public class StudentService {
                 classId, teacherId, teacherName, teacherEmail, teacherMobile, attendance,
                 student.getStudentId(), student.getProfilePhotoUrl() != null ? student.getProfilePhotoUrl() : ""
             );
+    }
+
+    public List<BirthdayStudentResponse> getUpcomingBirthdays(int daysAhead) {
+        List<Student> students = studentRepository.findAll();
+        List<BirthdayStudentResponse> upcoming = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        for (Student s : students) {
+            LocalDate dob = parseDate(s.getDateOfBirth());
+            if (dob != null) {
+                LocalDate bdayThisYear = dob.withYear(today.getYear());
+                if (bdayThisYear.isBefore(today)) {
+                    bdayThisYear = bdayThisYear.plusYears(1);
+                }
+
+                long daysBetween = ChronoUnit.DAYS.between(today, bdayThisYear);
+                if (daysBetween >= 0 && daysBetween <= daysAhead) {
+                    String className = s.getSchoolClass() != null ? s.getSchoolClass().getName() : s.getStudentClass();
+                    upcoming.add(new BirthdayStudentResponse(
+                            s.getId(),
+                            s.getStudentId(),
+                            s.getFirstName(),
+                            s.getLastName(),
+                            s.getDateOfBirth(),
+                            className,
+                            s.getProfilePhotoUrl() != null ? s.getProfilePhotoUrl() : "",
+                            daysBetween
+                    ));
+                }
+            }
+        }
+
+        upcoming.sort(Comparator.comparingLong(BirthdayStudentResponse::daysUntilBirthday));
+        return upcoming;
+    }
+
+    private LocalDate parseDate(String dobStr) {
+        if (dobStr == null || dobStr.isBlank()) return null;
+        String clean = dobStr.trim();
+        String[] formats = {"yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy/MM/dd"};
+        for (String f : formats) {
+            try {
+                return LocalDate.parse(clean, DateTimeFormatter.ofPattern(f));
+            } catch (Exception e) {
+                // Try next
+            }
+        }
+        return null;
     }
 }

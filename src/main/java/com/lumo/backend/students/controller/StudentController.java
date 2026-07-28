@@ -8,7 +8,9 @@ import com.lumo.backend.students.dto.RefreshTokenRequest;
 import com.lumo.backend.students.dto.RefreshTokenResponse;
 import com.lumo.backend.students.dto.StudentLoginRequest;
 import com.lumo.backend.students.dto.StudentLoginResponse;
+import com.lumo.backend.students.dto.BirthdayStudentResponse;
 import com.lumo.backend.students.service.StudentService;
+import java.util.List;
 import com.lumo.backend.students.repository.StudentRepository;
 import com.lumo.backend.students.entity.Student;
 import com.lumo.backend.service.FileStorageService;
@@ -82,6 +84,27 @@ public class StudentController {
     @GetMapping("/me")
     public ResponseEntity<StudentResponse> getStudentMe(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         return ResponseEntity.ok(studentService.getStudentByToken(authorizationHeader));
+    }
+
+    // GET /api/students/upcoming-birthdays
+    @GetMapping("/upcoming-birthdays")
+    public ResponseEntity<List<BirthdayStudentResponse>> getUpcomingBirthdays(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @RequestParam(value = "days", defaultValue = "30") Integer days
+    ) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized access.");
+        }
+        String token = authorizationHeader.substring(7).trim();
+        String adminEmail = jwtService.extractAdminSubject(token);
+        String teacherEmail = jwtService.extractTeacherSubject(token);
+        String studentId = jwtService.extractStudentSubject(token);
+
+        if (adminEmail == null && teacherEmail == null && studentId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid authentication token.");
+        }
+
+        return ResponseEntity.ok(studentService.getUpcomingBirthdays(days));
     }
 
     // GET /api/students/class/{className}

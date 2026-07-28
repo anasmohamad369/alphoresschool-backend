@@ -305,7 +305,14 @@ public class QuizService {
         }
 
         QuizAttempt attempt = quizAttemptRepository.findByQuizIdAndStudentId(quizId, studentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student is not registered for this quiz. Please register first."));
+                .orElseGet(() -> {
+                    QuizAttempt newAttempt = new QuizAttempt();
+                    newAttempt.setQuizId(quizId);
+                    newAttempt.setStudentId(studentId);
+                    newAttempt.setScore(0);
+                    newAttempt.setCompleted(false);
+                    return quizAttemptRepository.save(newAttempt);
+                });
 
         if (Boolean.TRUE.equals(attempt.getCompleted())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quiz attempt has already been submitted.");
