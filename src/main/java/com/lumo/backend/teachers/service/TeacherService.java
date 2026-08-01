@@ -49,10 +49,10 @@ public class TeacherService {
     public boolean addTeacher(TeacherAdd request) {
         Teacher teacher = new Teacher();
         teacher.setEmailId(request.emailId());
-        teacher.setPasswordHash(passwordEncoder.encode(request.passwordHash()));
         teacher.setName(request.name());
         teacher.setMobileNumber(request.mobileNumber());
         teacher.setClassTeacher(request.classTeacher());
+        teacher.setDateOfBirth(request.dateOfBirth());
         teacher.setClasses(request.classes());
         teacher.setSubjects(request.subjects());
         Teacher savedTeacher = teacherRepository.save(teacher);
@@ -65,10 +65,10 @@ public class TeacherService {
         if (teacher == null) {
             return false;
         }
-        teacher.setPasswordHash(passwordEncoder.encode(request.passwordHash()));
         teacher.setName(request.name());
         teacher.setMobileNumber(request.mobileNumber());
         teacher.setClassTeacher(request.classTeacher());
+        teacher.setDateOfBirth(request.dateOfBirth());
         teacher.setClasses(request.classes());
         teacher.setSubjects(request.subjects());
         Teacher savedTeacher = teacherRepository.save(teacher);
@@ -82,10 +82,10 @@ public class TeacherService {
             return false;
         }
         teacher.setEmailId(request.emailId());
-        teacher.setPasswordHash(passwordEncoder.encode(request.passwordHash()));
         teacher.setName(request.name());
         teacher.setMobileNumber(request.mobileNumber());
         teacher.setClassTeacher(request.classTeacher());
+        teacher.setDateOfBirth(request.dateOfBirth());
         teacher.setClasses(request.classes());
         teacher.setSubjects(request.subjects());
         Teacher savedTeacher = teacherRepository.save(teacher);
@@ -102,8 +102,8 @@ public class TeacherService {
     }
 
     public java.util.Map<String, String> loginTeacher(TeacherLogin request) {
-        Teacher teacher = teacherRepository.findByEmailId(request.emailId()).orElse(null);
-        if (teacher == null || !passwordEncoder.matches(request.passwordHash(), teacher.getPasswordHash())) {
+        Teacher teacher = teacherRepository.findByMobileNumber(request.mobileNumber()).orElse(null);
+        if (teacher == null || teacher.getDateOfBirth() == null || !teacher.getDateOfBirth().equals(request.dateOfBirth())) {
             return null;
         }
         java.util.Map<String, String> tokens = new java.util.HashMap<>();
@@ -134,6 +134,7 @@ public class TeacherService {
                             teacher.getName(),
                             teacher.getMobileNumber(),
                             teacher.getClassTeacher(),
+                            teacher.getDateOfBirth(),
                             teacher.getClasses() == null ? List.of() : List.copyOf(teacher.getClasses()),
                             teacher.getSubjects() == null ? List.of() : List.copyOf(teacher.getSubjects())))
                     .toList();
@@ -148,6 +149,7 @@ public class TeacherService {
                         teacher.getName(),
                         teacher.getMobileNumber(),
                         teacher.getClassTeacher(),
+                        teacher.getDateOfBirth(),
                         teacher.getClasses() == null ? List.of() : List.copyOf(teacher.getClasses()),
                         teacher.getSubjects() == null ? List.of() : List.copyOf(teacher.getSubjects())))
                 .toList();
@@ -163,6 +165,7 @@ public class TeacherService {
                 teacher.getName(),
                 teacher.getMobileNumber(),
                 teacher.getClassTeacher(),
+                teacher.getDateOfBirth(),
                 teacher.getClasses() == null ? List.of() : List.copyOf(teacher.getClasses()),
                 teacher.getSubjects() == null ? List.of() : List.copyOf(teacher.getSubjects()));
     }

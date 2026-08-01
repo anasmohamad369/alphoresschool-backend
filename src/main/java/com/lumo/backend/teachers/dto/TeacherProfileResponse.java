@@ -8,6 +8,7 @@ public record TeacherProfileResponse(
         String name,
         String mobileNumber,
         String classTeacher,
+        String dateOfBirth,
         List<String> classes,
         List<String> subjects) {
 }

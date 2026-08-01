@@ -33,9 +33,6 @@ public class Teacher {
     private String emailId;
 
     @Column(nullable = false)
-    private String passwordHash;
-
-    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
@@ -43,6 +40,8 @@ public class Teacher {
 
     @Column(nullable = false)
     private String classTeacher;
+
+    private String dateOfBirth;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "teacher_classes", joinColumns = @JoinColumn(name = "teacher_id"))

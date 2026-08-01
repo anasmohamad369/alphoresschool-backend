@@ -11,4 +11,6 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
 
     @Cacheable(value = "teachersByClass", key = "#classTeacher")
     Optional<Teacher> findFirstByClassTeacher(String classTeacher);
+
+    Optional<Teacher> findByMobileNumber(String mobileNumber);
 }

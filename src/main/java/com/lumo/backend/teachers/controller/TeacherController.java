@@ -87,7 +87,7 @@ public class TeacherController {
         java.util.Map<String, String> tokens = teacherService.loginTeacher(request);
         if (tokens == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new TeacherResponse(false, "Invalid username or password", null, null));
+                    .body(new TeacherResponse(false, "Invalid mobile number or date of birth", null, null));
         }
         return ResponseEntity.ok(new TeacherResponse(true, "Teacher login successful", tokens.get("accessToken"), tokens.get("refreshToken")));
     }
