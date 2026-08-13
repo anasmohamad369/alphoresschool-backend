@@ -10,7 +10,7 @@ public interface TimetableRepository extends JpaRepository<Timetable, Long> {
     List<Timetable> findBySchoolClassIdAndSectionId(Long classId, Long sectionId);
     List<Timetable> findBySchoolClassId(Long classId);
 
-    @Query("SELECT t FROM Timetable t WHERE t.schoolClass.id = :classId AND (t.section.id = :sectionId OR t.section IS NULL)")
+    @Query("SELECT t FROM Timetable t LEFT JOIN t.section s WHERE t.schoolClass.id = :classId AND (s.id = :sectionId OR s IS NULL)")
     List<Timetable> findBySchoolClassIdAndSectionIdOrSectionIsNull(@Param("classId") Long classId, @Param("sectionId") Long sectionId);
 
     List<Timetable> findBySchoolClassIdAndSectionIsNull(Long classId);
