@@ -136,10 +136,55 @@ public class MarkService {
     }
 
     public List<Mark> getMarksForAdmin(Long examId) {
+        List<Mark> marks;
         if (examId != null) {
-            return markRepository.findByExamId(examId);
+            marks = markRepository.findByExamId(examId);
+        } else {
+            marks = markRepository.findAll();
         }
-        return markRepository.findAll();
+
+        List<com.lumo.backend.students.entity.Student> students = studentRepository.findAll();
+        java.util.Map<String, String> studentNameMap = new java.util.HashMap<>();
+        java.util.Map<String, String> classNameMap = new java.util.HashMap<>();
+
+        for (com.lumo.backend.students.entity.Student s : students) {
+            String fullName = java.util.stream.Stream.of(s.getFirstName(), s.getMiddleName(), s.getLastName())
+                    .filter(java.util.Objects::nonNull)
+                    .filter(str -> !str.trim().isEmpty())
+                    .collect(java.util.stream.Collectors.joining(" "));
+
+            if (fullName.isEmpty()) {
+                fullName = "Student #" + s.getId();
+            }
+
+            String clsName = s.getSchoolClass() != null ? s.getSchoolClass().getName() : s.getStudentClass();
+
+            if (s.getId() != null) {
+                studentNameMap.put(String.valueOf(s.getId()), fullName);
+                if (clsName != null) classNameMap.put(String.valueOf(s.getId()), clsName);
+            }
+            if (s.getStudentId() != null) {
+                studentNameMap.put(s.getStudentId(), fullName);
+                if (clsName != null) classNameMap.put(s.getStudentId(), clsName);
+            }
+        }
+
+        for (Mark m : marks) {
+            if (m.getStudentId() != null) {
+                String name = studentNameMap.get(m.getStudentId());
+                if (name != null) {
+                    m.setStudentName(name);
+                } else {
+                    m.setStudentName("Student #" + m.getStudentId());
+                }
+                String clsName = classNameMap.get(m.getStudentId());
+                if (clsName != null) {
+                    m.setClassName(clsName);
+                }
+            }
+        }
+
+        return marks;
     }
 
     public Mark updateMark(Long id, Mark updated) {
