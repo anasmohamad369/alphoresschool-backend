@@ -168,6 +168,9 @@ public class ExamService {
 
         // ONLY fetch published exam results for student view
         List<ExamResult> results = examResultRepository.findByStudentIdAndPublishedTrue(studentId);
+        if (results.isEmpty()) {
+            results = examResultRepository.findByStudentIdAndPublishedTrue(String.valueOf(student.getId()));
+        }
         List<ExamReportDto> examReports = new java.util.ArrayList<>();
 
         if (!results.isEmpty()) {

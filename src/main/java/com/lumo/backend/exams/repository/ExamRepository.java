@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 public interface ExamRepository extends JpaRepository<Exam, Long> {
     List<Exam> findBySchoolClassId(Long classId);
 
-    @Query("SELECT e FROM Exam e WHERE e.schoolClass.id = :classId OR e.schoolClass IS NULL")
+    @Query("SELECT e FROM Exam e LEFT JOIN e.schoolClass sc WHERE sc.id = :classId OR sc.id IS NULL")
     List<Exam> findBySchoolClassIdOrSchoolClassIsNull(@Param("classId") Long classId);
 
     List<Exam> findBySchoolClassIsNull();

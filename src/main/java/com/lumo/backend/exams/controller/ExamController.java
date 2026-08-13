@@ -28,7 +28,12 @@ public class ExamController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Exam>> getAllExams(@org.springframework.web.bind.annotation.RequestParam(required = false) String name) {
+    public ResponseEntity<List<Exam>> getAllExams(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String name,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long classId) {
+        if (classId != null) {
+            return ResponseEntity.ok(examService.getExamsByClass(classId));
+        }
         if (name != null && !name.trim().isEmpty()) {
             return ResponseEntity.ok(examService.getExamsByName(name));
         }
