@@ -93,7 +93,7 @@ public class StudentService {
         Student student = new Student();
         mapFields(student, request.firstName(), request.lastName(), request.middleName(),
                 mobile, request.fatherName(), request.motherName(),
-                request.fatherAadharNumber(), request.motherAadharNumber(), request.studentAadharNumber(), request.dateOfBirth(),
+                request.dateOfBirth(),
                 request.gender(), request.studentClass(), request.profilePhotoUrl());
 
         student.setStudentId(request.studentId());
@@ -268,7 +268,7 @@ public class StudentService {
 
         mapFields(student, request.firstName(), request.lastName(), request.middleName(),
                 request.mobileNumber(), request.fatherName(), request.motherName(),
-                request.fatherAadharNumber(), request.motherAadharNumber(), request.studentAadharNumber(), request.dateOfBirth(),
+                request.dateOfBirth(),
                 request.gender(), request.studentClass(), request.profilePhotoUrl());
 
         Student updated = studentRepository.save(student);
@@ -284,7 +284,6 @@ public class StudentService {
 
     private void mapFields(Student student, String firstName, String lastName,
             String middleName, String mobileNumber, String fatherName, String motherName,
-            String fatherAadharNumber, String motherAadharNumber, String studentAadharNumber,
             String dateOfBirth, String gender, String studentClass, String profilePhotoUrl) {
         student.setFirstName(firstName);
         student.setLastName(lastName);
@@ -292,9 +291,6 @@ public class StudentService {
         student.setMobileNumber(mobileNumber);
         student.setFatherName(fatherName);
         student.setMotherName(motherName);
-        student.setFatherAadharNumber(fatherAadharNumber);
-        student.setMotherAadharNumber(motherAadharNumber);
-        student.setStudentAadharNumber(studentAadharNumber);
         student.setDateOfBirth(dateOfBirth);
         student.setGender(gender);
         student.setStudentClass(studentClass);
@@ -337,8 +333,6 @@ public class StudentService {
                 student.getId(), student.getFirstName(), student.getLastName(),
                 student.getMiddleName(), student.getMobileNumber(),
                 student.getFatherName(), student.getMotherName(),
-                student.getFatherAadharNumber(), student.getMotherAadharNumber(),
-                student.getStudentAadharNumber(),
                 student.getDateOfBirth(), student.getGender(), student.getStudentClass(),
                 classId, teacherId, teacherName, teacherEmail, teacherMobile, attendance,
                 student.getStudentId(), student.getProfilePhotoUrl() != null ? student.getProfilePhotoUrl() : ""

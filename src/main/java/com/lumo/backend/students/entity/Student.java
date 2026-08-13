@@ -50,9 +50,6 @@ public class Student {
     private String mobileNumber;
     private String fatherName;
     private String motherName;
-    private String fatherAadharNumber;
-    private String motherAadharNumber;
-    private String studentAadharNumber;
     private String dateOfBirth;
     private String gender;
 
