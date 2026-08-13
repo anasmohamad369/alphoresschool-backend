@@ -74,7 +74,7 @@ public class ExamService {
     }
 
     public List<Exam> getSchoolExams() {
-        return examRepository.findBySchoolClassIsNull();
+        return examRepository.findAll();
     }
 
     public List<Exam> getAllExams() {
