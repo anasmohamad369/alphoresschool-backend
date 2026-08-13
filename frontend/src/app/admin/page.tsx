@@ -35,9 +35,53 @@ import {
 
 export default function AdminDashboardPage() {
   const { user, logout } = useApp();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'courses' | 'videos' | 'documents' | 'blogs' | 'payments' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'courses' | 'videos' | 'documents' | 'blogs' | 'payments' | 'settings' | 'marks'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Marks & Results Management State
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('All');
+  const [selectedExamFilter, setSelectedExamFilter] = useState<string>('All');
+  const [publishBanner, setPublishBanner] = useState<string | null>(null);
+
+  const [marksList, setMarksList] = useState([
+    { id: 1, studentId: 'STU-1001', studentName: 'Aarav Sharma', className: 'Class 10-A', examName: 'Mid-Term Examination 2026', subject: 'Mathematics', marksObtained: 92, maxMarks: 100, published: false },
+    { id: 2, studentId: 'STU-1001', studentName: 'Aarav Sharma', className: 'Class 10-A', examName: 'Mid-Term Examination 2026', subject: 'Physics', marksObtained: 88, maxMarks: 100, published: false },
+    { id: 3, studentId: 'STU-1002', studentName: 'Priya Verma', className: 'Class 10-A', examName: 'Mid-Term Examination 2026', subject: 'Mathematics', marksObtained: 79, maxMarks: 100, published: false },
+    { id: 4, studentId: 'STU-1002', studentName: 'Priya Verma', className: 'Class 10-A', examName: 'Mid-Term Examination 2026', subject: 'Physics', marksObtained: 84, maxMarks: 100, published: false },
+    { id: 5, studentId: 'STU-1003', studentName: 'Rohan Gupta', className: 'Class 10-B', examName: 'Mid-Term Examination 2026', subject: 'Mathematics', marksObtained: 65, maxMarks: 100, published: false },
+    { id: 6, studentId: 'STU-1004', studentName: 'Ananya Reddy', className: 'Class 9-A', examName: 'Unit Test 1', subject: 'Chemistry', marksObtained: 95, maxMarks: 100, published: true },
+  ]);
+
+  const [editingMarkId, setEditingMarkId] = useState<number | null>(null);
+  const [editMarksVal, setEditMarksVal] = useState<number>(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+
+  const handlePublishClassWise = (className: string) => {
+    setMarksList(prev => prev.map(m => (className === 'All' || m.className === className) ? { ...m, published: true } : m));
+    setPublishBanner(`Successfully published results ${className !== 'All' ? `for ${className}` : 'class-wise'}! Students can now view their report cards.`);
+    setTimeout(() => setPublishBanner(null), 5000);
+  };
+
+  const handlePublishOverall = () => {
+    setMarksList(prev => prev.map(m => ({ ...m, published: true })));
+    setPublishBanner(`Successfully published ALL exam results overall! All students can now view their updated report cards.`);
+    setTimeout(() => setPublishBanner(null), 5000);
+  };
+
+  const handleOpenEditMark = (mark: typeof marksList[0]) => {
+    setEditingMarkId(mark.id);
+    setEditMarksVal(mark.marksObtained);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEditMark = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingMarkId === null) return;
+    setMarksList(prev => prev.map(m => m.id === editingMarkId ? { ...m, marksObtained: editMarksVal } : m));
+    setIsEditModalOpen(false);
+    setEditingMarkId(null);
+  };
 
   // Modals for adding items
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
@@ -65,6 +109,17 @@ export default function AdminDashboardPage() {
   const [newBlogCat, setNewBlogCat] = useState<'Embedded Systems' | 'Linux' | 'Data Analytics' | 'Career Guidance' | 'GATE Preparation'>('Embedded Systems');
   const [newBlogSummary, setNewBlogSummary] = useState('');
   const [newBlogContent, setNewBlogContent] = useState('');
+
+  const menuItems = [
+    { id: 'dashboard', name: 'Overview', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: 'students', name: 'Students Manager', icon: <Users className="h-5 w-5" /> },
+    { id: 'marks', name: 'Marks & Results', icon: <CheckCircle className="h-5 w-5" /> },
+    { id: 'courses', name: 'Course Catalog', icon: <BookOpen className="h-5 w-5" /> },
+    { id: 'videos', name: 'Lecture Media', icon: <VideoIcon className="h-5 w-5" /> },
+    { id: 'documents', name: 'Documents Center', icon: <FileText className="h-5 w-5" /> },
+    { id: 'blogs', name: 'Blog Publications', icon: <Newspaper className="h-5 w-5" /> },
+    { id: 'payments', name: 'Billing Records', icon: <CreditCard className="h-5 w-5" /> },
+  ] as const;
 
   // Protect Route: Redirect if not logged in or role is not admin
   if (!user || user.role !== 'admin') {
@@ -673,6 +728,148 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
+          {/* TAB 8: MARKS & RESULTS MANAGEMENT */}
+          {activeTab === 'marks' && (
+            <div className="space-y-6">
+              {publishBanner && (
+                <div className="bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-emerald-200" />
+                    <span className="text-xs font-semibold">{publishBanner}</span>
+                  </div>
+                  <button onClick={() => setPublishBanner(null)} className="text-white/80 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    Marks & Results Approval Center
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Review student marks entered by teachers/admins. Edit scores before publishing class-wise or overall.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => handlePublishClassWise(selectedClassFilter)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Publish Class Results {selectedClassFilter !== 'All' ? `(${selectedClassFilter})` : ''}
+                  </button>
+                  <button
+                    onClick={handlePublishOverall}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    Publish Overall Results
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600">Class Filter:</span>
+                  <select
+                    value={selectedClassFilter}
+                    onChange={(e) => setSelectedClassFilter(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none text-slate-800 font-medium"
+                  >
+                    <option value="All">All Classes</option>
+                    <option value="Class 10-A">Class 10-A</option>
+                    <option value="Class 10-B">Class 10-B</option>
+                    <option value="Class 9-A">Class 9-A</option>
+                  </select>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600">Exam Filter:</span>
+                  <select
+                    value={selectedExamFilter}
+                    onChange={(e) => setSelectedExamFilter(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none text-slate-800 font-medium"
+                  >
+                    <option value="All">All Examinations</option>
+                    <option value="Mid-Term Examination 2026">Mid-Term Examination 2026</option>
+                    <option value="Unit Test 1">Unit Test 1</option>
+                  </select>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-2">
+                  <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full text-xs bg-transparent focus:outline-none text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Marks Table */}
+              <Card>
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="p-4 font-bold">Student ID</th>
+                      <th className="p-4 font-bold">Student Name</th>
+                      <th className="p-4 font-bold">Class</th>
+                      <th className="p-4 font-bold">Exam</th>
+                      <th className="p-4 font-bold">Subject</th>
+                      <th className="p-4 font-bold text-center">Marks Obtained</th>
+                      <th className="p-4 font-bold text-center">Status</th>
+                      <th className="p-4 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {marksList
+                      .filter(m => selectedClassFilter === 'All' || m.className === selectedClassFilter)
+                      .filter(m => selectedExamFilter === 'All' || m.examName === selectedExamFilter)
+                      .filter(m => !searchQuery || m.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || m.studentId.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((mark) => (
+                        <tr key={mark.id} className="hover:bg-slate-50/50">
+                          <td className="p-4 font-mono font-semibold text-slate-900">{mark.studentId}</td>
+                          <td className="p-4 font-semibold text-slate-800">{mark.studentName}</td>
+                          <td className="p-4 text-slate-600">{mark.className}</td>
+                          <td className="p-4 font-medium text-slate-700">{mark.examName}</td>
+                          <td className="p-4 text-slate-600">{mark.subject}</td>
+                          <td className="p-4 text-center font-bold text-slate-900">
+                            {mark.marksObtained} / {mark.maxMarks}
+                          </td>
+                          <td className="p-4 text-center">
+                            {mark.published ? (
+                              <Badge variant="success" className="inline-flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" /> Published
+                              </Badge>
+                            ) : (
+                              <Badge variant="warning" className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                                <AlertCircle className="h-3 w-3" /> Draft (Pending)
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleOpenEditMark(mark)}
+                              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 transition-colors"
+                            >
+                              Edit Score
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </Card>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -916,6 +1113,29 @@ export default function AdminDashboardPage() {
             </Button>
             <Button type="submit" size="sm" id="btn-submit-add-blog">
               Publish Article
+            </Button>
+          </div>
+        </form>
+      {/* --- EDIT MARK MODAL --- */}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Student Mark Entry">
+        <form onSubmit={handleSaveEditMark} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Marks Obtained</label>
+            <input
+              type="number"
+              value={editMarksVal}
+              onChange={(e) => setEditMarksVal(Number(e.target.value))}
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm">
+              Save Changes
             </Button>
           </div>
         </form>

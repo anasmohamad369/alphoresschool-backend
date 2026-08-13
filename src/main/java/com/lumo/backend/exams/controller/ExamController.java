@@ -74,4 +74,27 @@ public class ExamController {
             @PathVariable String studentId) {
         return ResponseEntity.ok(examService.getStudentReportCard(studentId));
     }
+
+    @PostMapping("/{examId}/publish/class/{classId}")
+    public ResponseEntity<java.util.Map<String, Object>> publishExamClassWise(
+            @PathVariable Long examId,
+            @PathVariable Long classId) {
+        int count = examService.publishExamResultsClassWise(examId, classId);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("publishedCount", count);
+        response.put("message", "Published exam results for class " + classId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{examId}/publish/overall")
+    public ResponseEntity<java.util.Map<String, Object>> publishExamOverall(
+            @PathVariable Long examId) {
+        int count = examService.publishExamResultsOverall(examId);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("publishedCount", count);
+        response.put("message", "Published overall exam results");
+        return ResponseEntity.ok(response);
+    }
 }

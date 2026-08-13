@@ -16,10 +16,12 @@ public class MarkService {
 
     private final MarkRepository markRepository;
     private final ExamRepository examRepository;
+    private final com.lumo.backend.students.repository.StudentRepository studentRepository;
 
-    public MarkService(MarkRepository markRepository, ExamRepository examRepository) {
+    public MarkService(MarkRepository markRepository, ExamRepository examRepository, com.lumo.backend.students.repository.StudentRepository studentRepository) {
         this.markRepository = markRepository;
         this.examRepository = examRepository;
+        this.studentRepository = studentRepository;
     }
 
     public Mark saveMark(MarkRequest request) {
@@ -32,6 +34,7 @@ public class MarkService {
         mark.setSubject(request.subject());
         mark.setMarksObtained(request.marksObtained());
         mark.setMaxMarks(request.maxMarks() != null ? request.maxMarks() : 100);
+        mark.setPublished(false); // Saved as draft by default
 
         return markRepository.save(mark);
     }
@@ -54,6 +57,9 @@ public class MarkService {
             mark.setExam(exam);
             mark.setSubject(input.subject());
             mark.setMarksObtained(input.marksObtained());
+            if (mark.getPublished() == null) {
+                mark.setPublished(false);
+            }
 
             Integer resolvedMaxMarks = exam.getSubjects().stream()
                     .filter(s -> s.getSubject().equalsIgnoreCase(input.subject()))
@@ -72,7 +78,8 @@ public class MarkService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new IllegalArgumentException("Exam not found: " + examId));
 
-        List<Mark> marksList = markRepository.findByStudentIdAndExamId(studentId, examId);
+        // Fetch ONLY published marks for student report card
+        List<Mark> marksList = markRepository.findByStudentIdAndExamIdAndPublishedTrue(studentId, examId);
 
         List<SubjectMarkResponse> subjectMarks = new ArrayList<>();
         int totalObtained = 0;
@@ -100,6 +107,54 @@ public class MarkService {
                 percentage,
                 grade
         );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public int publishMarksClassWise(Long classId, Long examId) {
+        List<com.lumo.backend.students.entity.Student> students = studentRepository.findBySchoolClassId(classId);
+        List<String> studentIds = new java.util.ArrayList<>();
+        for (com.lumo.backend.students.entity.Student s : students) {
+            if (s.getStudentId() != null) studentIds.add(s.getStudentId());
+            studentIds.add(String.valueOf(s.getId()));
+        }
+        if (studentIds.isEmpty()) return 0;
+
+        if (examId != null) {
+            return markRepository.publishByExamIdAndStudentIdIn(examId, studentIds);
+        } else {
+            return markRepository.publishByStudentIdIn(studentIds);
+        }
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public int publishMarksOverall(Long examId) {
+        if (examId != null) {
+            return markRepository.publishByExamId(examId);
+        } else {
+            return markRepository.publishAll();
+        }
+    }
+
+    public List<Mark> getMarksForAdmin(Long examId) {
+        if (examId != null) {
+            return markRepository.findByExamId(examId);
+        }
+        return markRepository.findAll();
+    }
+
+    public Mark updateMark(Long id, Mark updated) {
+        Mark existing = markRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Mark not found with id: " + id));
+        if (updated.getMarksObtained() != null) {
+            existing.setMarksObtained(updated.getMarksObtained());
+        }
+        if (updated.getMaxMarks() != null) {
+            existing.setMaxMarks(updated.getMaxMarks());
+        }
+        if (updated.getPublished() != null) {
+            existing.setPublished(updated.getPublished());
+        }
+        return markRepository.save(existing);
     }
 
     private String calculateGrade(double percentage) {
