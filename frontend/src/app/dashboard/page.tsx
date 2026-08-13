@@ -846,7 +846,7 @@ export default function StudentDashboardPage() {
                         {reportCardData.examName}
                       </div>
                       <h3 className="text-xl font-bold">{reportCardData.studentName}</h3>
-                      <p className="text-xs text-blue-100 mt-1">Student ID: {reportCardData.studentId} • {reportCardData.className}</p>
+                      <p className="text-xs text-blue-100 mt-1">{reportCardData.className}</p>
                     </div>
 
                     <div className="flex items-center gap-6 bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">

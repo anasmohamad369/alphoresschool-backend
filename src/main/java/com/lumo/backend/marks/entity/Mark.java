@@ -35,4 +35,10 @@ public class Mark {
     private Integer marksObtained;
     private Integer maxMarks; // e.g. 100
     private Boolean published = false;
+
+    @jakarta.persistence.Transient
+    private String studentName;
+
+    @jakarta.persistence.Transient
+    private String className;
 }
