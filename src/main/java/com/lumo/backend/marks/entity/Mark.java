@@ -34,4 +34,5 @@ public class Mark {
     private String subject;
     private Integer marksObtained;
     private Integer maxMarks; // e.g. 100
+    private Boolean published = false;
 }

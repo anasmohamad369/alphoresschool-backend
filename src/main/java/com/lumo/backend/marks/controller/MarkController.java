@@ -38,4 +38,40 @@ public class MarkController {
             @PathVariable Long examId) {
         return ResponseEntity.ok(markService.calculateReportCard(studentId, examId));
     }
+
+    @GetMapping("/admin")
+    public ResponseEntity<java.util.List<Mark>> getMarksForAdmin(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long examId) {
+        return ResponseEntity.ok(markService.getMarksForAdmin(examId));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public ResponseEntity<Mark> updateMark(
+            @PathVariable Long id,
+            @RequestBody Mark mark) {
+        return ResponseEntity.ok(markService.updateMark(id, mark));
+    }
+
+    @PostMapping("/publish/class/{classId}")
+    public ResponseEntity<java.util.Map<String, Object>> publishClassWise(
+            @PathVariable Long classId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long examId) {
+        int updatedCount = markService.publishMarksClassWise(classId, examId);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("publishedCount", updatedCount);
+        response.put("message", "Published marks for classId " + classId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/publish/overall")
+    public ResponseEntity<java.util.Map<String, Object>> publishOverall(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long examId) {
+        int updatedCount = markService.publishMarksOverall(examId);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("publishedCount", updatedCount);
+        response.put("message", "Published overall marks successfully");
+        return ResponseEntity.ok(response);
+    }
 }

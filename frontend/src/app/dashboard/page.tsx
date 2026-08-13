@@ -45,9 +45,28 @@ export default function StudentDashboardPage() {
     downloadDocument 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'courses' | 'videos' | 'documents' | 'certificates' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'courses' | 'videos' | 'documents' | 'certificates' | 'profile' | 'results'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+
+  // Student Exam Results State
+  const [studentResultsPublished, setStudentResultsPublished] = useState<boolean>(false);
+  const [reportCardData, setReportCardData] = useState({
+    studentId: 'STU-1001',
+    studentName: 'Aarav Sharma',
+    className: 'Class 10-A',
+    examName: 'Mid-Term Examination 2026',
+    subjects: [
+      { subject: 'Mathematics', maxMarks: 100, marksObtained: 92, grade: 'A+' },
+      { subject: 'Physics', maxMarks: 100, marksObtained: 88, grade: 'A' },
+      { subject: 'Chemistry', maxMarks: 100, marksObtained: 85, grade: 'A' },
+      { subject: 'English', maxMarks: 100, marksObtained: 78, grade: 'B' },
+    ],
+    totalObtained: 343,
+    totalMax: 400,
+    percentage: 85.75,
+    overallGrade: 'A'
+  });
   
   // Dynamic detail panels
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
@@ -151,6 +170,7 @@ export default function StudentDashboardPage() {
   // Sidebar Menu Configurations
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: 'results', name: 'Exam Results', icon: <CheckCircle className="h-5 w-5" /> },
     { id: 'courses', name: 'My Courses', icon: <BookOpen className="h-5 w-5" /> },
     { id: 'videos', name: 'Lectures', icon: <VideoIcon className="h-5 w-5" /> },
     { id: 'documents', name: 'Study Library', icon: <FileText className="h-5 w-5" /> },
@@ -773,6 +793,116 @@ export default function StudentDashboardPage() {
                   </form>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* TAB 7: EXAM RESULTS & REPORT CARD */}
+          {activeTab === 'results' && (
+            <div className="space-y-6 max-w-4xl">
+              <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    Academic Report Card & Results
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Official semester scores and marks verified by school administration.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setStudentResultsPublished(!studentResultsPublished)}
+                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-semibold transition-colors"
+                  >
+                    Demo Toggle: {studentResultsPublished ? 'Published' : 'Draft / Unpublished'}
+                  </button>
+                </div>
+              </div>
+
+              {!studentResultsPublished ? (
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-8 text-center space-y-4 shadow-sm">
+                  <div className="h-12 w-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-2">
+                    <h3 className="text-base font-bold text-amber-900">Results Not Published Yet</h3>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      Your examination marks have been submitted by subject teachers and are currently being reviewed by administration. Once the Admin clicks the official Publish button, your report card will automatically display here.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <Badge variant="warning" className="bg-amber-100 text-amber-800 border-amber-300 px-3 py-1 text-xs">
+                      Status: Pending Admin Approval & Publication
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Summary Card */}
+                  <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                      <div className="inline-block bg-white/20 px-2.5 py-0.5 rounded-md text-[11px] font-semibold tracking-wide uppercase mb-2">
+                        {reportCardData.examName}
+                      </div>
+                      <h3 className="text-xl font-bold">{reportCardData.studentName}</h3>
+                      <p className="text-xs text-blue-100 mt-1">Student ID: {reportCardData.studentId} • {reportCardData.className}</p>
+                    </div>
+
+                    <div className="flex items-center gap-6 bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
+                      <div className="text-center">
+                        <p className="text-[10px] text-blue-200 uppercase font-semibold">Total Score</p>
+                        <p className="text-xl font-extrabold">{reportCardData.totalObtained} / {reportCardData.totalMax}</p>
+                      </div>
+                      <div className="h-8 w-px bg-white/20" />
+                      <div className="text-center">
+                        <p className="text-[10px] text-blue-200 uppercase font-semibold">Percentage</p>
+                        <p className="text-xl font-extrabold">{reportCardData.percentage}%</p>
+                      </div>
+                      <div className="h-8 w-px bg-white/20" />
+                      <div className="text-center">
+                        <p className="text-[10px] text-blue-200 uppercase font-semibold">Grade</p>
+                        <span className="inline-block bg-amber-400 text-slate-900 font-black px-2.5 py-0.5 rounded text-sm mt-0.5">
+                          {reportCardData.overallGrade}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subject Breakdown Table */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-bold text-slate-900">Subject-wise Performance Breakdown</CardTitle>
+                    </CardHeader>
+                    <table className="w-full border-collapse text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="p-4 font-bold">Subject</th>
+                          <th className="p-4 font-bold text-center">Max Marks</th>
+                          <th className="p-4 font-bold text-center">Marks Obtained</th>
+                          <th className="p-4 font-bold text-center">Grade</th>
+                          <th className="p-4 font-bold text-right">Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {reportCardData.subjects.map((sub, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="p-4 font-semibold text-slate-900">{sub.subject}</td>
+                            <td className="p-4 text-center font-medium text-slate-600">{sub.maxMarks}</td>
+                            <td className="p-4 text-center font-bold text-slate-900">{sub.marksObtained}</td>
+                            <td className="p-4 text-center">
+                              <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                {sub.grade}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right text-emerald-600 font-medium">Passed</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Card>
+                </div>
+              )}
             </div>
           )}
 

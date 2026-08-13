@@ -33,4 +33,5 @@ public class ExamResult {
     private Double marksObtained;
     private String grade;
     private String remarks;
+    private Boolean published = false;
 }

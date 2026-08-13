@@ -153,6 +153,9 @@ public class ExamService {
             result.setMarksObtained(req.marksObtained());
             result.setGrade(req.grade());
             result.setRemarks(req.remarks());
+            if (result.getPublished() == null) {
+                result.setPublished(false);
+            }
             savedResults.add(examResultRepository.save(result));
         }
         return savedResults;
@@ -163,7 +166,8 @@ public class ExamService {
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND, "Student not found"));
 
-        List<ExamResult> results = examResultRepository.findByStudentId(studentId);
+        // ONLY fetch published exam results for student view
+        List<ExamResult> results = examResultRepository.findByStudentIdAndPublishedTrue(studentId);
         List<ExamReportDto> examReports = new java.util.ArrayList<>();
 
         if (!results.isEmpty()) {
@@ -208,10 +212,10 @@ public class ExamService {
                 ));
             }
         } else {
-            // Fetch from marks table
-            List<com.lumo.backend.marks.entity.Mark> marks = markRepository.findByStudentId(studentId);
+            // Fetch ONLY published records from marks table
+            List<com.lumo.backend.marks.entity.Mark> marks = markRepository.findByStudentIdAndPublishedTrue(studentId);
             if (marks.isEmpty()) {
-                marks = markRepository.findByStudentId(String.valueOf(student.getId()));
+                marks = markRepository.findByStudentIdAndPublishedTrue(String.valueOf(student.getId()));
             }
 
             Map<Exam, List<com.lumo.backend.marks.entity.Mark>> groupedByExam = marks.stream()
@@ -270,6 +274,40 @@ public class ExamService {
                 sectionName,
                 examReports
         );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public int publishExamResultsClassWise(Long examId, Long classId) {
+        List<Student> students = studentRepository.findBySchoolClassId(classId);
+        List<String> studentIds = new java.util.ArrayList<>();
+        for (Student s : students) {
+            if (s.getStudentId() != null) studentIds.add(s.getStudentId());
+            studentIds.add(String.valueOf(s.getId()));
+        }
+        if (studentIds.isEmpty()) return 0;
+
+        int publishedCount = 0;
+        if (examId != null) {
+            publishedCount += examResultRepository.publishByExamIdAndStudentIdIn(examId, studentIds);
+            publishedCount += markRepository.publishByExamIdAndStudentIdIn(examId, studentIds);
+        } else {
+            publishedCount += examResultRepository.publishByStudentIdIn(studentIds);
+            publishedCount += markRepository.publishByStudentIdIn(studentIds);
+        }
+        return publishedCount;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public int publishExamResultsOverall(Long examId) {
+        int publishedCount = 0;
+        if (examId != null) {
+            publishedCount += examResultRepository.publishByExamId(examId);
+            publishedCount += markRepository.publishByExamId(examId);
+        } else {
+            publishedCount += examResultRepository.publishAll();
+            publishedCount += markRepository.publishAll();
+        }
+        return publishedCount;
     }
 
     private String calculateGrade(double percentage) {
