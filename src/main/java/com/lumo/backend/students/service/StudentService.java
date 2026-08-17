@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import com.lumo.backend.service.FileStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class StudentService {
     private final AttendanceRepository attendanceRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
     public StudentService(
             StudentRepository studentRepository,
@@ -52,7 +54,8 @@ public class StudentService {
             SectionRepository sectionRepository,
             AttendanceRepository attendanceRepository,
             JwtService jwtService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            FileStorageService fileStorageService) {
         this.studentRepository = studentRepository;
         this.teacherRepository = teacherRepository;
         this.classRepository = classRepository;
@@ -60,6 +63,7 @@ public class StudentService {
         this.attendanceRepository = attendanceRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
     }
 
     public StudentAddResponse addStudent(StudentAdd request, String authorizationHeader) {
@@ -371,6 +375,41 @@ public class StudentService {
 
         upcoming.sort(Comparator.comparingLong(BirthdayStudentResponse::daysUntilBirthday));
         return upcoming;
+    }
+
+    public void deleteStudent(String identifier) {
+        Student student = null;
+        try {
+            Long id = Long.parseLong(identifier);
+            student = studentRepository.findById(id).orElse(null);
+        } catch (NumberFormatException e) {
+            // ignore, try studentId
+        }
+
+        if (student == null) {
+            student = studentRepository.findByStudentId(identifier)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found with ID: " + identifier));
+        }
+
+        // Remove student ID from any linked teacher
+        List<Teacher> teachers = teacherRepository.findAll();
+        for (Teacher t : teachers) {
+            if (t.getStudentIds() != null && t.getStudentIds().contains(student.getId())) {
+                t.getStudentIds().remove(student.getId());
+                teacherRepository.save(t);
+            }
+        }
+
+        // Remove profile photo if present
+        if (student.getProfilePhotoUrl() != null && !student.getProfilePhotoUrl().isBlank()) {
+            try {
+                fileStorageService.deleteFile(student.getProfilePhotoUrl());
+            } catch (Exception e) {
+                // ignore storage exception
+            }
+        }
+
+        studentRepository.delete(student);
     }
 
     private LocalDate parseDate(String dobStr) {
