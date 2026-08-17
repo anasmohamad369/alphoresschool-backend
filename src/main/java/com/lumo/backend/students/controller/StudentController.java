@@ -80,6 +80,28 @@ public class StudentController {
         return ResponseEntity.ok(studentService.updateStudent(studentId, request));
     }
 
+    // DELETE /api/students/{studentId}
+    @DeleteMapping("/{studentId}")
+    public ResponseEntity<Map<String, Object>> deleteStudent(
+            @PathVariable String studentId,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized access.");
+        }
+        String token = authorizationHeader.substring(7).trim();
+        String adminEmail = jwtService.extractAdminSubject(token);
+        String teacherEmail = jwtService.extractTeacherSubject(token);
+        if (adminEmail == null && teacherEmail == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only Admins or Teachers can delete students.");
+        }
+
+        studentService.deleteStudent(studentId);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Student deleted successfully"
+        ));
+    }
+
     // GET /api/students/me
     @GetMapping("/me")
     public ResponseEntity<StudentResponse> getStudentMe(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
