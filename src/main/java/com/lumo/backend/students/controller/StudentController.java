@@ -7,6 +7,8 @@ import com.lumo.backend.students.dto.StudentUpdate;
 import com.lumo.backend.students.dto.RefreshTokenRequest;
 import com.lumo.backend.students.dto.RefreshTokenResponse;
 import com.lumo.backend.students.dto.StudentLoginRequest;
+import com.lumo.backend.students.dto.StudentLookupRequest;
+import com.lumo.backend.students.dto.StudentLookupResponse;
 import com.lumo.backend.students.dto.StudentLoginResponse;
 import com.lumo.backend.students.dto.BirthdayStudentResponse;
 import com.lumo.backend.students.service.StudentService;
@@ -42,6 +44,16 @@ public class StudentController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new StudentAddResponse("Unauthorized", null, null));
         }
         return ResponseEntity.ok(studentService.addStudent(request , authorizationHeader));
+    }
+
+    // POST /api/students/lookup
+    @PostMapping("/lookup")
+    public ResponseEntity<StudentLookupResponse> lookupStudents(@RequestBody StudentLookupRequest request) {
+        StudentLookupResponse response = studentService.lookupChildrenByMobile(request.mobileNumber());
+        if (!response.success() && (response.children() == null || response.children().isEmpty())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     // POST /api/students/login

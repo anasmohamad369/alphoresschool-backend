@@ -358,7 +358,12 @@ public class NotificationService {
 
     @Transactional
     public void deleteNotification(Long id) {
+        if (!notificationRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found");
+        }
+        recipientRepository.deleteByNotificationId(id);
         notificationRepository.deleteById(id);
+        log.info("[Notifications] Deleted notification ID: {} and its recipient records", id);
     }
 
     @Transactional

@@ -6,6 +6,8 @@ import com.lumo.backend.students.dto.StudentResponse;
 import com.lumo.backend.students.dto.StudentUpdate;
 import com.lumo.backend.students.dto.StudentLoginRequest;
 import com.lumo.backend.students.dto.BirthdayStudentResponse;
+import com.lumo.backend.students.dto.ChildSummaryDto;
+import com.lumo.backend.students.dto.StudentLookupResponse;
 import com.lumo.backend.students.entity.Student;
 import com.lumo.backend.students.repository.StudentRepository;
 import com.lumo.backend.teachers.entity.Teacher;
@@ -81,10 +83,7 @@ public class StudentService {
         if (mobile == null || mobile.isBlank()) {
             throw new IllegalArgumentException("mobileNumber is required.");
         }
-        if (studentRepository.findByMobileNumber(mobile).isPresent()) {
-            throw new IllegalArgumentException(
-                    "Student with mobile number " + mobile + " already exists.");
-        }
+        // Sibling support: multiple students can share the same parent mobile number
 
         if (request.studentId() == null || request.studentId().isBlank()) {
             throw new IllegalArgumentException("studentId is required.");
@@ -226,8 +225,100 @@ public class StudentService {
         );
     }
 
+    private List<Student> findStudentsByFlexibleMobile(String mobileNumber) {
+        if (mobileNumber == null || mobileNumber.isBlank()) {
+            return List.of();
+        }
+        String cleanMobile = mobileNumber.trim().replaceAll("[^0-9]", "");
+        if (cleanMobile.isEmpty()) {
+            return List.of();
+        }
+
+        // 1. Exact match
+        List<Student> students = studentRepository.findAllByMobileNumber(cleanMobile);
+        if (!students.isEmpty()) {
+            return students;
+        }
+
+        // 2. If starts with 0, try without leading 0
+        if (cleanMobile.startsWith("0")) {
+            students = studentRepository.findAllByMobileNumber(cleanMobile.substring(1));
+            if (!students.isEmpty()) return students;
+        }
+
+        // 3. Try with leading 0
+        students = studentRepository.findAllByMobileNumber("0" + cleanMobile);
+        if (!students.isEmpty()) return students;
+
+        // 4. Try with 91 prefix
+        if (cleanMobile.length() == 10) {
+            students = studentRepository.findAllByMobileNumber("91" + cleanMobile);
+            if (!students.isEmpty()) return students;
+        }
+
+        // 5. Fallback: match by last 10 digits
+        if (cleanMobile.length() >= 10) {
+            String last10 = cleanMobile.substring(cleanMobile.length() - 10);
+            return studentRepository.findAll().stream().filter(s -> {
+                if (s.getMobileNumber() == null) return false;
+                String sm = s.getMobileNumber().trim().replaceAll("[^0-9]", "");
+                return sm.equals(cleanMobile) || sm.endsWith(last10) || cleanMobile.endsWith(sm);
+            }).toList();
+        }
+
+        return List.of();
+    }
+
+    public StudentLookupResponse lookupChildrenByMobile(String mobileNumber) {
+        List<Student> students = findStudentsByFlexibleMobile(mobileNumber);
+        if (students.isEmpty()) {
+            return new StudentLookupResponse(false, "No student account found registered with this mobile number.", List.of());
+        }
+
+        List<ChildSummaryDto> children = students.stream().map(s -> {
+            String sectionName = s.getSection() != null ? s.getSection().getName() : "";
+            String className = s.getSchoolClass() != null ? s.getSchoolClass().getName() : (s.getStudentClass() != null ? s.getStudentClass() : "");
+            return new ChildSummaryDto(
+                s.getId(),
+                s.getStudentId(),
+                s.getFirstName(),
+                s.getLastName(),
+                s.getMiddleName(),
+                className,
+                sectionName,
+                s.getProfilePhotoUrl() != null ? s.getProfilePhotoUrl() : ""
+            );
+        }).toList();
+
+        return new StudentLookupResponse(true, "Found " + children.size() + " student(s)", children);
+    }
+
     public Map<String, String> loginStudent(StudentLoginRequest request) {
-        Student student = studentRepository.findByMobileNumber(request.mobileNumber()).orElse(null);
+        Student student = null;
+        if (request.studentId() != null && !request.studentId().isBlank()) {
+            student = studentRepository.findByStudentId(request.studentId().trim()).orElse(null);
+            // Verify mobile number if provided with flexible matching
+            if (student != null && request.mobileNumber() != null && !request.mobileNumber().isBlank()) {
+                String sm = student.getMobileNumber() != null ? student.getMobileNumber().replaceAll("[^0-9]", "") : "";
+                String reqMob = request.mobileNumber().replaceAll("[^0-9]", "");
+                if (!sm.isEmpty() && !reqMob.isEmpty() && !sm.equals(reqMob) && !sm.endsWith(reqMob) && !reqMob.endsWith(sm)) {
+                    return null;
+                }
+            }
+        } else if (request.mobileNumber() != null && !request.mobileNumber().isBlank()) {
+            List<Student> students = findStudentsByFlexibleMobile(request.mobileNumber());
+            if (students.size() == 1) {
+                student = students.get(0);
+            } else {
+                for (Student s : students) {
+                    if (s.getDateOfBirth() != null && s.getDateOfBirth().equals(request.dateOfBirth())) {
+                        student = s;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (student == null || student.getDateOfBirth() == null || !student.getDateOfBirth().equals(request.dateOfBirth())) {
             return null;
         }

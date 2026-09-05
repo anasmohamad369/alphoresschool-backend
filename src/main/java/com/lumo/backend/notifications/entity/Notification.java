@@ -3,6 +3,8 @@ package com.lumo.backend.notifications.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -77,6 +79,10 @@ public class Notification {
 
     @Column(name = "failure_reason", length = 1000)
     private String failureReason;
+
+    @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<NotificationRecipient> recipients = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
