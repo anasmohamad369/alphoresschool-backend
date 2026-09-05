@@ -40,6 +40,10 @@ services:
       APP_JWT_STUDENT_SECRET: ${APP_JWT_STUDENT_SECRET:-changeme-student-dev-only}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_API_MODEL: ${OPENROUTER_API_MODEL:-openrouter/free}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-notification-alphroes}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+      FIREBASE_CREDENTIALS_FILE: ${FIREBASE_CREDENTIALS_FILE:-}
     env_file:
       - path: .env
         required: false
