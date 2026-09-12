@@ -14,9 +14,15 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
            "ORDER BY m.timestamp ASC")
     List<ChatMessage> findChatHistory(@Param("user1") String user1, @Param("user2") String user2);
 
-    @Query("SELECT m FROM ChatMessage m WHERE m.id IN (" +
-           "  SELECT MAX(msg.id) FROM ChatMessage msg WHERE msg.senderId = :userId OR msg.receiverId = :userId " +
-           "  GROUP BY CASE WHEN msg.senderId = :userId THEN msg.receiverId ELSE msg.senderId END" +
-           ") ORDER BY m.timestamp DESC")
+    @Query(value = "SELECT * FROM chat_messages WHERE id IN (" +
+           "  SELECT MAX(id) FROM chat_messages WHERE sender_id = :userId OR receiver_id = :userId " +
+           "  GROUP BY CASE WHEN sender_id = :userId THEN receiver_id ELSE sender_id END" +
+           ") ORDER BY timestamp DESC", nativeQuery = true)
     List<ChatMessage> findLatestMessagesForUser(@Param("userId") String userId);
+
+    @Query(value = "SELECT * FROM chat_messages WHERE id IN (" +
+           "  SELECT MAX(id) FROM chat_messages " +
+           "  GROUP BY CASE WHEN sender_id < receiver_id THEN CONCAT(sender_id, ':', receiver_id) ELSE CONCAT(receiver_id, ':', sender_id) END" +
+           ") ORDER BY timestamp DESC", nativeQuery = true)
+    List<ChatMessage> findAllLatestConversations();
 }
